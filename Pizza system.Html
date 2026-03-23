@@ -285,4 +285,300 @@
                     </div>
                 </div>
             </template>
+        </div>
  
+        <div class="p-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+            <div class="flex justify-between text-slate-500">
+                <span>Subtotal</span>
+                <span x-text="'$' + cartTotal.toFixed(2)"></span>
+            </div>
+            <div class="flex justify-between text-slate-500">
+                <span>Delivery Fee</span>
+                <span class="text-success font-bold uppercase text-xs">Free</span>
+            </div>
+            <div class="flex justify-between text-xl font-black">
+                <span>Total</span>
+                <span class="text-primary" x-text="'$' + cartTotal.toFixed(2)"></span>
+            </div>
+            <button @click="openCheckout()" :disabled="cart.length === 0" class="w-full py-5 bg-primary disabled:opacity-50 disabled:cursor-not-allowed text-white text-xl font-black rounded-2xl shadow-xl shadow-primary/30 hover:bg-orange-600 transition">CHECKOUT NOW</button>
+            <p class="text-center text-[10px] text-slate-400 uppercase tracking-widest">Secure 256-bit SSL Encrypted Payment</p>
+        </div>
+    </div>
+
+    <div x-show="checkoutOpen" x-transition x-cloak class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-darkBg/95">
+        <div class="bg-white dark:bg-slate-900 rounded-[3rem] max-w-4xl w-full h-[85vh] overflow-hidden flex flex-col md:flex-row shadow-2xl">
+            <div class="flex-1 p-8 md:p-12 overflow-y-auto">
+                <h2 class="text-4xl font-black italic mb-8 uppercase">Fast Checkout</h2>
+                
+                <div class="space-y-8">
+                    <div>
+                        <h3 class="text-sm font-black text-primary uppercase tracking-widest mb-4">1. Delivery Address</h3>
+                        <div class="grid grid-cols-1 gap-4">
+                            <input type="text" placeholder="Street Address" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl border-none">
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="text" placeholder="Apt/Suite" class="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl border-none">
+                                <input type="text" placeholder="Zip Code" class="bg-slate-100 dark:bg-slate-800 p-4 rounded-xl border-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-sm font-black text-primary uppercase tracking-widest mb-4">2. Payment Method</h3>
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <button class="flex items-center justify-center gap-2 p-4 border-2 border-primary rounded-xl bg-primary/5"><i data-lucide="credit-card"></i> Card</button>
+                            <button class="flex items-center justify-center gap-2 p-4 border-2 border-slate-200 dark:border-slate-800 rounded-xl"><i data-lucide="smartphone"></i> Apple Pay</button>
+                        </div>
+                        <input type="text" placeholder="Card Number" class="w-full bg-slate-100 dark:bg-slate-800 p-4 rounded-xl border-none mb-4">
+                    </div>
+
+                    <button @click="placeOrder()" class="w-full py-5 bg-success text-white text-xl font-black rounded-2xl shadow-xl shadow-success/30 hover:scale-[1.02] transition">PLACE ORDER — $<span x-text="cartTotal.toFixed(2)"></span></button>
+                </div>
+            </div>
+            
+            <div class="hidden md:block w-80 bg-slate-50 dark:bg-slate-800/50 p-8 border-l border-slate-200 dark:border-slate-700">
+                <h3 class="font-bold mb-6 italic uppercase">Order Summary</h3>
+                <div class="space-y-4 max-h-[50vh] overflow-y-auto pr-2 scrollbar-hide">
+                    <template x-for="item in cart">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-500" x-text="item.qty + 'x ' + item.name"></span>
+                            <span class="font-bold" x-text="'$' + (item.price * item.qty).toFixed(2)"></span>
+                        </div>
+                    </template>
+                </div>
+                <div class="mt-8 pt-6 border-t border-slate-300 dark:border-slate-700 space-y-2">
+                    <div class="flex justify-between text-slate-500 text-xs">
+                        <span>Items</span>
+                        <span x-text="'$' + cartTotal.toFixed(2)"></span>
+                    </div>
+                    <div class="flex justify-between text-slate-500 text-xs">
+                        <span>Tax (8%)</span>
+                        <span x-text="'$' + (cartTotal * 0.08).toFixed(2)"></span>
+                    </div>
+                    <div class="flex justify-between font-black text-lg pt-2">
+                        <span>Total</span>
+                        <span x-text="'$' + (cartTotal * 1.08).toFixed(2)"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section x-show="orderPlaced" x-transition x-cloak class="fixed inset-0 z-[100] bg-darkBg flex items-center justify-center p-4">
+        <div class="max-w-4xl w-full text-center">
+            <div class="mb-12">
+                <div class="inline-block p-6 bg-success/20 text-success rounded-full mb-6">
+                    <i data-lucide="check-circle" class="w-20 h-20"></i>
+                </div>
+                <h2 class="text-5xl font-black uppercase italic mb-4">Order Received!</h2>
+                <p class="text-xl text-slate-400">Your pizza is being handcrafted right now. Order #PS-<span x-text="orderNumber"></span></p>
+            </div>
+
+            <div class="grid grid-cols-4 gap-4 mb-12">
+                <template x-for="(step, i) in ['Confirmed', 'Preparing', 'In Oven', 'On the Way']">
+                    <div class="text-center">
+                        <div :class="i <= orderStep ? 'bg-primary' : 'bg-slate-800'" class="h-2 rounded-full mb-4 transition-all duration-1000"></div>
+                        <span :class="i <= orderStep ? 'text-white' : 'text-slate-600'" class="text-xs font-bold uppercase tracking-widest" x-text="step"></span>
+                    </div>
+                </template>
+            </div>
+
+            <div class="bg-slate-900 rounded-[2rem] p-8 border border-slate-800 max-w-md mx-auto">
+                <div class="text-sm text-slate-500 uppercase font-black mb-2">Estimated Arrival</div>
+                <div class="text-6xl font-black text-primary mb-6">24:59</div>
+                <button @click="orderPlaced = false; cart = []; saveCart();" class="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition">Return Home</button>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-slate-900 text-slate-400 py-20 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center gap-2 mb-6">
+                        <div class="p-2 bg-primary rounded-lg text-white">
+                            <i data-lucide="flame" class="w-6 h-6"></i>
+                        </div>
+                        <span class="text-2xl font-black tracking-tighter uppercase italic text-white">Pizza<span class="text-primary">System</span></span>
+                    </div>
+                    <p class="max-w-sm mb-8">Revolutionizing pizza delivery with high-tech ovens and lightning-fast logistics. Freshness is our DNA.</p>
+                    <div class="flex gap-4">
+                        <a href="#" class="w-10 h-10 bg-slate-800 flex items-center justify-center rounded-full hover:bg-primary hover:text-white transition"><i data-lucide="instagram"></i></a>
+                        <a href="#" class="w-10 h-10 bg-slate-800 flex items-center justify-center rounded-full hover:bg-primary hover:text-white transition"><i data-lucide="twitter"></i></a>
+                        <a href="#" class="w-10 h-10 bg-slate-800 flex items-center justify-center rounded-full hover:bg-primary hover:text-white transition"><i data-lucide="facebook"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-6">Quick Links</h4>
+                    <ul class="space-y-4">
+                        <li><a href="#" class="hover:text-primary transition">Our Story</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Careers</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Franchise</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Accessibility</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-white font-bold mb-6">Support</h4>
+                    <ul class="space-y-4">
+                        <li><a href="#" class="hover:text-primary transition">Help Center</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Track Order</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Privacy Policy</a></li>
+                        <li><a href="#" class="hover:text-primary transition">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4">
+                <p class="text-sm italic">Made with ❤️ in the USA • © 2026 Pizza System</p>
+                <div class="flex gap-6">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" class="h-4 opacity-50 grayscale hover:grayscale-0 transition" alt="Paypal">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" class="h-4 opacity-50 grayscale hover:grayscale-0 transition" alt="Visa">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" class="h-6 opacity-50 grayscale hover:grayscale-0 transition" alt="Mastercard">
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div class="md:hidden fixed bottom-6 right-6 z-40">
+        <button @click="scrollToMenu()" class="w-16 h-16 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center animate-bounce-short">
+            <i data-lucide="pizza"></i>
+        </button>
+    </div>
+
+    <script>
+        function pizzaApp() {
+            return {
+                darkMode: true,
+                cartOpen: false,
+                customizerOpen: false,
+                checkoutOpen: false,
+                orderPlaced: false,
+                showExitIntent: false,
+                activeCategory: 'Pizzas',
+                activeOrders: 2347,
+                countdown: '04h 12m 00s',
+                orderStep: 1,
+                orderNumber: '88219',
+                selectedSize: 'Medium',
+                selectedCrust: 'Classic Hand-Tossed',
+                customizingItem: null,
+                cart: JSON.parse(localStorage.getItem('pizzaCart') || '[]'),
+                categories: ['Pizzas', 'Sides', 'Drinks', 'Desserts'],
+                
+                deals: [
+                    { id: 'd1', title: 'Buy 1 Get 1 Free', desc: 'Any large specialty pizza. Limit 2 per customer.', price: 19.99, tag: 'Bestseller', image: 'https://images.unsplash.com/photo-1574129624552-46c135711e58?q=80&w=800' },
+                    { id: 'd2', title: 'Family Feast', desc: '2 Large Pizzas + Sides + 2L Soda', price: 24.99, tag: 'Value', image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=800' },
+                    { id: 'd3', title: 'Extra Large 50% Off', desc: 'Today only. Any topping combination.', price: 12.50, tag: 'Flash Deal', image: 'https://images.unsplash.com/photo-1593504049359-74330189a355?q=80&w=800' }
+                ],
+
+                products: [
+                    { id: 1, category: 'Pizzas', name: 'The Meat System', desc: 'Pepperoni, Italian sausage, smoked bacon, ham, and ground beef on our signature red sauce.', price: 18.99, scarcity: 4, image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?q=80&w=800' },
+                    { id: 2, category: 'Pizzas', name: 'Truffle Mushroom', desc: 'Wild mushrooms, truffle oil, roasted garlic, and mozzarella on a creamy white base.', price: 21.99, scarcity: 7, image: 'https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?q=80&w=800' },
+                    { id: 3, category: 'Pizzas', name: 'Spicy Inferno', desc: 'Ghost pepper pepperoni, jalapeños, spicy sausage, and honey-sriracha drizzle.', price: 17.99, scarcity: 2, image: 'https://images.unsplash.com/photo-1585238342024-78d387f4a707?q=80&w=800' },
+                    { id: 4, category: 'Pizzas', name: 'Garden Deluxe', desc: 'Fresh spinach, green peppers, onions, tomatoes, and kalamata olives.', price: 16.99, scarcity: 12, image: 'https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?q=80&w=800' },
+                    { id: 5, category: 'Sides', name: 'Garlic Knots', desc: '8 pieces of buttery, garlic-infused bread with marinara dip.', price: 6.99, image: 'https://images.unsplash.com/photo-1541745537411-b8046dc6d66c?q=80&w=800' },
+                    { id: 6, category: 'Sides', name: 'Buffalo Wings', desc: '10 jumbo wings tossed in our signature spicy buffalo sauce.', price: 12.99, image: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?q=80&w=800' },
+                    { id: 7, category: 'Drinks', name: 'Signature Soda', desc: '2L bottle of our crisp, refreshing cola.', price: 3.50, image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?q=80&w=800' },
+                    { id: 8, category: 'Desserts', name: 'Lava Cake', desc: 'Warm chocolate cake with a molten center and sea salt.', price: 7.99, image: 'https://images.unsplash.com/photo-1606312619070-d48b4c652a52?q=80&w=800' }
+                ],
+
+                get filteredProducts() {
+                    return this.products.filter(p => p.category === this.activeCategory);
+                },
+
+                get cartTotal() {
+                    return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                },
+
+                init() {
+                    lucide.createIcons();
+                    
+                    // Increment active orders counter
+                    setInterval(() => {
+                        this.activeOrders += Math.floor(Math.random() * 3) + 1;
+                    }, 8000);
+
+                    // Exit intent logic
+                    document.addEventListener('mouseleave', (e) => {
+                        if (e.clientY < 0 && !localStorage.getItem('sawExitPopup')) {
+                            this.showExitIntent = true;
+                            localStorage.setItem('sawExitPopup', 'true');
+                        }
+                    });
+
+                    // Countdown timer
+                    setInterval(() => {
+                        let now = new Date();
+                        let hours = 23 - now.getHours();
+                        let mins = 59 - now.getMinutes();
+                        let secs = 59 - now.getSeconds();
+                        this.countdown = `${hours.toString().padStart(2, '0')}h ${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
+                    }, 1000);
+                },
+
+                addToCart(product, fromCustomizer = false) {
+                    let cartItem = {
+                        ...product,
+                        qty: 1,
+                        details: fromCustomizer ? `${this.selectedSize}, ${this.selectedCrust}` : 'Standard Medium'
+                    };
+                    
+                    if(fromCustomizer && this.selectedCrust.includes('Stuffed')) {
+                        cartItem.price += 3;
+                    }
+
+                    this.cart.push(cartItem);
+                    this.saveCart();
+                    this.customizerOpen = false;
+                    this.cartOpen = true;
+                    
+                    // Small toast or notification could go here
+                },
+
+                updateQty(index, delta) {
+                    this.cart[index].qty += delta;
+                    if(this.cart[index].qty < 1) this.removeFromCart(index);
+                    this.saveCart();
+                },
+
+                removeFromCart(index) {
+                    this.cart.splice(index, 1);
+                    this.saveCart();
+                },
+
+                saveCart() {
+                    localStorage.setItem('pizzaCart', JSON.stringify(this.cart));
+                },
+
+                openCustomizer(item) {
+                    this.customizingItem = item;
+                    this.selectedSize = 'Medium';
+                    this.selectedCrust = 'Classic Hand-Tossed';
+                    this.customizerOpen = true;
+                },
+
+                scrollToMenu() {
+                    document.getElementById('menu').scrollIntoView({ behavior: 'smooth' });
+                },
+
+                scrollToDeals() {
+                    document.getElementById('deals').scrollIntoView({ behavior: 'smooth' });
+                },
+
+                openCheckout() {
+                    this.cartOpen = false;
+                    this.checkoutOpen = true;
+                },
+
+                placeOrder() {
+                    this.checkoutOpen = false;
+                    this.orderPlaced = true;
+                    this.orderNumber = Math.floor(100000 + Math.random() * 900000);
+                    
+                    // Simulate delivery progress
+                    setTimeout(() => this.orderStep = 2, 5000);
+                    setTimeout(() => this.orderStep = 3, 10000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
